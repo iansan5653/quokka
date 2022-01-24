@@ -4,7 +4,9 @@
   "timeZone": "America/New_York",
   "dependencies": {},
   "oauthScopes": [
-    "https://www.googleapis.com/auth/calendar.addons.execute"
+    "https://www.googleapis.com/auth/calendar.addons.execute",
+    "https://www.googleapis.com/auth/calendar.readonly"
+    
   ],
   "addOns": {
     "common": {
@@ -16,9 +18,7 @@
       "homepageTrigger": {
         "runFunction": "onHomepage"
       },
-      "openLinkUrlPrefixes": [
-        "https://github.com/"
-      ]
+      "openLinkUrlPrefixes": ["https://github.com/"]
     }
   },
   "calendar": {}
