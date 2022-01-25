@@ -67,14 +67,14 @@ export function onStartSetGitHubToken() {
   return CardService.newActionResponseBuilder().setNavigation(navigation).build();
 }
 
-export function onGitHubAccessTokenChange(
+export function onGitHubAccessTokenSave(
   event: GoogleAppsScript.Events.AppsScriptEvent & {
     formInput?: { githubAccessToken?: string };
   }
 ): GoogleAppsScript.Card_Service.ActionResponse {
   if (event.formInput?.githubAccessToken) githubAccessToken.set(event.formInput?.githubAccessToken);
 
-  const notification = CardService.newNotification().setText("✅ Saved");
+  const notification = CardService.newNotification().setText("✅ Token saved");
   const navigation = CardService.newNavigation().popToRoot();
   const responseBuilder = CardService.newActionResponseBuilder();
   responseBuilder.setNotification(notification).setNavigation(navigation);
