@@ -1,18 +1,15 @@
 import { syncStatus } from "./quokka/sync-status";
+import { Homepage, onGitHubAccessTokenChange } from "./views/homepage";
 
 export function onHomepage(): GoogleAppsScript.Card_Service.Card[] {
-  return [
-    CardService.newCardBuilder()
-      .setName("Quokka Home")
-      .setHeader(CardService.newCardHeader().setTitle("Quokka Home"))
-      .build(),
-  ];
+  return Homepage();
 }
 
 export function onSyncChron(): void {
   syncStatus();
-  console.log("Hello world")
+  console.log("Hello world");
 }
 
 global.onHomepage = onHomepage;
 global.onSyncChron = onSyncChron;
+global.onGitHubAccessTokenChange = onGitHubAccessTokenChange;

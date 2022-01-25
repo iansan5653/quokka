@@ -1,43 +1,48 @@
+import {githubAccessToken} from "../quokka/settings";
 import { GraphQLClient } from "../util/graphql-client";
 import { Status } from "./status";
 
-const token = "TOKEN";
-
-const client = new GraphQLClient("https://api.github.com/graphql", {
-  Authorization: `bearer ${token}`,
-});
-
-const changeStatusDocument = ({ emoji, message, busy }: Status) => `
-  mutation {
-    changeUserStatus(input: {emoji: ":${emoji}:", message: "${message}", limitedAvailability: ${busy}}) {
-      status {
-        emoji
-        expiresAt
-        limitedAvailability: indicatesLimitedAvailability
-        message
-      }
-    }
+class GitHubClient extends GraphQLClient {
+  constructor(token: string) {
+    super("https://api.github.com/graphql", {
+      Authorization: `bearer ${token}`,
+    });
   }
-`;
 
-function setStatus(status: Status) {
-  client.request(changeStatusDocument(status));
-}
-
-const clearStatusDocument = `
-  mutation {
-    changeUserStatus(input: {}) {
-      status {
-        message
+  public setStatus({
+    emoji,
+    message,
+    busy,
+  }: Status) {
+    this.request(`
+      mutation {
+        changeUserStatus(input: {emoji: ":${emoji}:", message: "${message}", limitedAvailability: ${busy}}) {
+          status {
+            emoji
+            expiresAt
+            limitedAvailability: indicatesLimitedAvailability
+            message
+          }
+        }
       }
-    }
+    `)
   }
-`;
 
-function clearStatus() {
-  client.request(clearStatusDocument);
+  public clearStatus() {
+    this.request(`
+      mutation {
+        changeUserStatus(input: {}) {
+          status {
+            message
+          }
+        }
+      }
+    `)
+  }
 }
 
 export function setOrClearStatus(status: Status | null) {
-  return status ? setStatus(status) : clearStatus();
+  const token = githubAccessToken.get()
+  const client = new GitHubClient(token)
+  return status ? client.setStatus(status) : client.clearStatus();
 }

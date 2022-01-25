@@ -6,7 +6,7 @@ export type Headers = Record<string, string>;
  * Node APIs.
  */
 export class GraphQLClient {
-  constructor(private url: string, private headers: Headers) {}
+  constructor(private readonly url: string, private readonly headers: Headers) {}
 
   private buildPayload(document: string, variables?: object): string {
     const payload = JSON.stringify({
