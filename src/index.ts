@@ -1,6 +1,4 @@
-// You can access any of the global GAS objects in this file. You can also
-// import local files or external dependencies:
-import { syncStatus } from "./sync-status";
+import { syncStatus } from "./quokka/sync-status";
 
 export function onHomepage(): GoogleAppsScript.Card_Service.Card[] {
   return [
@@ -13,6 +11,7 @@ export function onHomepage(): GoogleAppsScript.Card_Service.Card[] {
 
 export function onSyncChron(): void {
   syncStatus();
+  console.log("Hello world")
 }
 
 global.onHomepage = onHomepage;
