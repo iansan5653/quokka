@@ -26,6 +26,6 @@ export class GraphQLClient {
       method: "post",
       payload: this.buildPayload(document, variables),
     });
-    console.log(response.toString());
+    console.log(`GraphQL response received: ${response.toString()}`);
   }
 }

@@ -1,4 +1,9 @@
-import { Event } from "./event";
+import { EVENT_BATCH_DURATION_MS } from "../properties";
+
+export interface Event {
+  start: Date;
+  end: Date;
+}
 
 function getCalId(): string {
   const calendar = CalendarApp.getDefaultCalendar();
@@ -8,9 +13,9 @@ function getCalId(): string {
 /**
  * Get the events that are currently happening (within a 1-second window of now).
  */
-export function getCurrentEvents(): Event[] {
-  const start = new Date(new Date().getTime() - 1000);
-  const end = new Date(new Date().getTime() + 1000);
+export function getBatchEvents(): Event[] {
+  const start = new Date();
+  const end = new Date(start.getTime() + EVENT_BATCH_DURATION_MS);
 
   const allCurrentEvents =
     Calendar.Events?.list(getCalId(), {
@@ -23,6 +28,6 @@ export function getCurrentEvents(): Event[] {
 
   // Always ignore events where the user set "Show me as available"
   return allCurrentEvents
-    .filter((e) => e.transparency !== "transparent")
-    .map(() => ({}));
+    .filter((e) => e.transparency !== "transparent" && e.start?.dateTime && e.end?.dateTime)
+    .map((e) => ({ start: new Date(e.start!.dateTime!), end: new Date(e.end!.dateTime!) }));
 }

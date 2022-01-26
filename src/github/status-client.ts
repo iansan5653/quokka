@@ -1,4 +1,4 @@
-import {githubAccessToken} from "../quokka/settings";
+import { githubAccessToken } from "../quokka/settings";
 import { GraphQLClient } from "../util/graphql-client";
 import { Status } from "./status";
 
@@ -9,14 +9,13 @@ class GitHubClient extends GraphQLClient {
     });
   }
 
-  public setStatus({
-    emoji,
-    message,
-    busy,
-  }: Status) {
+  public setStatus({ emoji, message, busy, expiresAt }: Status) {
+    console.log(`Setting GitHub status to ${emoji}: ${message}`);
     this.request(`
       mutation {
-        changeUserStatus(input: {emoji: ":${emoji}:", message: "${message}", limitedAvailability: ${busy}}) {
+        changeUserStatus(input: {emoji: ":${emoji}:", message: "${message}", limitedAvailability: ${busy}${
+      expiresAt ? `, expiresAt: "${expiresAt.toISOString()}"` : ""
+    }}) {
           status {
             emoji
             expiresAt
@@ -25,7 +24,7 @@ class GitHubClient extends GraphQLClient {
           }
         }
       }
-    `)
+    `);
   }
 
   public clearStatus() {
@@ -37,12 +36,12 @@ class GitHubClient extends GraphQLClient {
           }
         }
       }
-    `)
+    `);
   }
 }
 
 export function setOrClearStatus(status: Status | null) {
-  const token = githubAccessToken.get()
-  const client = new GitHubClient(token)
+  const token = githubAccessToken.get();
+  const client = new GitHubClient(token);
   return status ? client.setStatus(status) : client.clearStatus();
 }

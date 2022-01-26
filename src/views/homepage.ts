@@ -1,3 +1,4 @@
+import { loadNextBatch } from "../quokka/load-batch";
 import { githubAccessToken } from "../quokka/settings";
 
 function GitHubTokenHintMessage() {
@@ -58,8 +59,30 @@ function GitHubTokenStatusCard() {
   return CardService.newCardBuilder().setHeader(header).addSection(section).build();
 }
 
+function RefreshHintMessage() {
+  return CardService.newTextParagraph().setText(
+    "If you are experiencing any issues with the app, try refreshing below."
+  );
+}
+
+function RefreshButton() {
+  const refreshAction = CardService.newAction().setFunctionName("onRefresh");
+  return CardService.newTextButton()
+    .setText("Force Refresh")
+    .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+    .setOnClickAction(refreshAction);
+}
+
+function RefreshCard() {
+  const header = CardService.newCardHeader().setTitle("Force Refresh");
+  const section = CardService.newCardSection()
+    .addWidget(RefreshHintMessage())
+    .addWidget(RefreshButton());
+  return CardService.newCardBuilder().setHeader(header).addSection(section).build();
+}
+
 export function Homepage(): GoogleAppsScript.Card_Service.Card[] {
-  return [GitHubTokenStatusCard()];
+  return [GitHubTokenStatusCard(), RefreshCard()];
 }
 
 export function onStartSetGitHubToken() {
@@ -73,7 +96,8 @@ export function onGitHubAccessTokenSave(
   }
 ): GoogleAppsScript.Card_Service.ActionResponse {
   if (event.formInput?.githubAccessToken) githubAccessToken.set(event.formInput?.githubAccessToken);
-
+  console.log("Saved new PAT")
+  loadNextBatch();
   const notification = CardService.newNotification().setText("✅ Token saved");
   const navigation = CardService.newNavigation().popToRoot();
   const responseBuilder = CardService.newActionResponseBuilder();
