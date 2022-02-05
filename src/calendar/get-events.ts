@@ -88,8 +88,6 @@ function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
     pages.push(page);
   }
 
-  console.log(JSON.stringify(pages));
-
   const events = processResponseItems(pages.flatMap((page) => page.items ?? []));
 
   if (events.length > MAX_BATCH_SIZE) {
