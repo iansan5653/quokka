@@ -42,6 +42,11 @@ class GitHubClient extends GraphQLClient {
 
 export function setOrClearStatus(status: Status | null) {
   const token = githubAccessToken.get();
+  if (!token) {
+    console.error("Could not update user status because no PAT is stored");
+    return;
+  }
+
   const client = new GitHubClient(token);
   return status ? client.setStatus(status) : client.clearStatus();
 }

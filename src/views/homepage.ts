@@ -96,11 +96,15 @@ export function onGitHubAccessTokenSave(
   }
 ): GoogleAppsScript.Card_Service.ActionResponse {
   if (event.formInput?.githubAccessToken) githubAccessToken.set(event.formInput?.githubAccessToken);
-  console.log("Saved new PAT")
+  console.log("Saved new PAT");
   loadNextBatch();
   const notification = CardService.newNotification().setText("✅ Token saved");
   const navigation = CardService.newNavigation().popToRoot();
   const responseBuilder = CardService.newActionResponseBuilder();
   responseBuilder.setNotification(notification).setNavigation(navigation);
   return responseBuilder.build();
+}
+
+export function onHomepage() {
+  return Homepage();
 }

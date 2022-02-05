@@ -1,16 +1,13 @@
-import { onEventStart, onRefresh } from "./quokka/load-batch";
+import { onEventStart, onRefresh, onSync } from "./quokka/load-batch";
 import {
-  Homepage,
+  onHomepage,
   onGitHubAccessTokenSave,
   onStartSetGitHubToken,
 } from "./views/homepage";
-
-export function onHomepage(): GoogleAppsScript.Card_Service.Card[] {
-  return Homepage();
-}
 
 global.onHomepage = onHomepage;
 global.onGitHubAccessTokenSave = onGitHubAccessTokenSave;
 global.onStartSetGitHubToken = onStartSetGitHubToken;
 global.onEventStart = onEventStart;
 global.onRefresh = onRefresh;
+global.onSync = onSync;

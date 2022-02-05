@@ -20,15 +20,15 @@
   "addOns": {
     "common": {
       "name": "Quokka",
-      "logoUrl": "http://example.com",
+      "logoUrl": "https://quokka-340401.web.app/quokka%20logo.png",
       "layoutProperties": {
-        "primaryColor": "#000000"
+        "primaryColor": "#1b1511"
       },
       "homepageTrigger": {
         "runFunction": "onHomepage"
       },
       "openLinkUrlPrefixes": ["https://github.com/"]
-    }
-  },
-  "calendar": {}
+    },
+    "calendar": {}
+  }
 }
