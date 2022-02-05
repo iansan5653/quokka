@@ -1,5 +1,9 @@
+export function secondsToMillis(seconds: number) {
+  return seconds * 1000
+}
+
 export function minutesToMillis(minutes: number) {
-  return minutes * 60 * 1000;
+  return secondsToMillis(minutes * 60);
 }
 
 export function hoursToMillis(hours: number) {

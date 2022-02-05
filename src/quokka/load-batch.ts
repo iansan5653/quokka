@@ -1,8 +1,9 @@
-import { Event, getAllEvents } from "../calendar/get-events";
-import { Status } from "../github/status";
-import { setOrClearStatus } from "../github/status-client";
-import { DEFAULT_STATUS } from "../properties";
-import { BatchItem } from "./settings";
+import {Event, getAllEvents} from "../calendar/get-events";
+import {Status} from "../github/status";
+import {setOrClearStatus} from "../github/status-client";
+import {DEFAULT_STATUS} from "../properties";
+import {secondsToMillis} from "../util/dates";
+import {BatchItem} from "./settings";
 
 function clearLoadedTriggers() {
   console.log(`Clearing previously created onEventStart or onRefresh triggers`);
@@ -39,37 +40,38 @@ function createTriggerAndStoreEvent(event: Event) {
  * Delete all the currently batched triggers and enqueue the next batch of triggers.
  */
 export function loadNextBatch() {
-  // Loading the next batch resets the app state, so there's no point in running it in
-  // parallel and it can cause errors because triggers are being created and deleted at
-  // the same time. We can just fail if a batch is already being loaded.
-  // This is likely to happen if the user makes a lot of changes at once.
+  // Lock to prevent loading two batches at once. This can happen if the user makes many
+  // calendar changes at a time.
+  // Note - this could result in an edge case where the last change event times out and
+  // doesn't get called, resulting in the data being outdated. There's no way around this
+  // though because we can't debounce this method without creating triggers, and triggers
+  // can only be created once per hour.
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(0)) {
-    console.info("Quitting because a batch load is already in progress.");
-    return;
+  lock.waitLock(secondsToMillis(10));
+
+  try {
+    clearLoadedTriggers();
+
+    const {events, calendarId, rebatchAt} = getAllEvents();
+    console.log(`Creating triggers for batch of ${events.length} events`);
+
+    events.forEach(createTriggerAndStoreEvent);
+
+    const nextBatchTrigger = ScriptApp.newTrigger("onRefresh").timeBased().at(rebatchAt).create();
+    console.log(
+      `Scheduled next batch to load at ${rebatchAt} (trigger ID ${nextBatchTrigger.getUniqueId()})`
+    );
+
+    const syncTrigger = ScriptApp.newTrigger("onSync")
+      .forUserCalendar(calendarId)
+      .onEventUpdated()
+      .create();
+    console.log(
+      `Scheduled re-batch to also run on all event updates (trigger ID ${syncTrigger.getUniqueId()})`
+    );
+  } finally {
+    lock.releaseLock();
   }
-
-  clearLoadedTriggers();
-
-  const { events, calendarId, rebatchAt } = getAllEvents();
-  console.log(`Creating triggers for batch of ${events.length} events`);
-
-  events.forEach(createTriggerAndStoreEvent);
-
-  const nextBatchTrigger = ScriptApp.newTrigger("onRefresh").timeBased().at(rebatchAt).create();
-  console.log(
-    `Scheduled next batch to load at ${rebatchAt} (trigger ID ${nextBatchTrigger.getUniqueId()})`
-  );
-
-  const syncTrigger = ScriptApp.newTrigger("onSync")
-    .forUserCalendar(calendarId)
-    .onEventUpdated()
-    .create();
-  console.log(
-    `Scheduled re-batch to also run on all event updates (trigger ID ${syncTrigger.getUniqueId()})`
-  );
-
-  lock.releaseLock();
 }
 
 export function onRefresh() {
