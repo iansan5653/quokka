@@ -1,9 +1,9 @@
-import { Event, getAllEvents, getChangedEvents } from "../calendar/get-events";
+import { Event, getAllEvents } from "../calendar/get-events";
 import { Status } from "../github/status";
 import { setOrClearStatus } from "../github/status-client";
 import { DEFAULT_STATUS, EVENT_BATCH_DURATION_HOURS } from "../properties";
 import { hoursToMillis } from "../util/dates";
-import { BatchItem, currentBatchSyncToken } from "./settings";
+import { BatchItem } from "./settings";
 
 function clearLoadedTriggers() {
   console.log(`Clearing previously created onEventStart or onRefresh triggers`);
@@ -43,6 +43,7 @@ export function loadNextBatch() {
   // Loading the next batch resets the app state, so there's no point in running it in
   // parallel and it can cause errors because triggers are being created and deleted at
   // the same time. We can just fail if a batch is already being loaded.
+  // This is likely to happen if the user makes a lot of changes at once.
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(0)) {
     console.info("Quitting because a batch load is already in progress.");
@@ -51,10 +52,9 @@ export function loadNextBatch() {
 
   clearLoadedTriggers();
 
-  const { events, syncToken, calendarId } = getAllEvents();
+  const { events, calendarId } = getAllEvents();
   console.log(`Creating triggers for batch of ${events.length} events`);
 
-  currentBatchSyncToken.set(syncToken);
   events.forEach(createTriggerAndStoreEvent);
 
   const nextBatchTrigger = ScriptApp.newTrigger("onRefresh")
@@ -70,54 +70,10 @@ export function loadNextBatch() {
     .onEventUpdated()
     .create();
   console.log(
-    `Scheduled sync to run on event updates (trigger ID ${syncTrigger.getUniqueId()}, sync token ${syncToken})`
+    `Scheduled re-batch to run on event updates (trigger ID ${syncTrigger.getUniqueId()})`
   );
 
   lock.releaseLock();
-}
-
-/**
- * If a valid sync token is stored, query it and update the current batch with the latest
- * changes. Otherwise, loads the next batch.
- */
-export function syncCurrentBatch() {
-  const syncToken = currentBatchSyncToken.get();
-  console.log(`Updating the current batch using sync token ${syncToken}`);
-
-  if (!syncToken) {
-    console.warn("No sync token found. Loading the next batch instead");
-    loadNextBatch();
-    return;
-  }
-
-  const syncResponse = getChangedEvents(syncToken);
-  if (!syncResponse) {
-    console.warn("Calendar app rejected sync token. Loading the next batch instead");
-    loadNextBatch();
-    return;
-  }
-
-  currentBatchSyncToken.set(syncResponse.syncToken);
-
-  const projectTriggersById = new Map(
-    ScriptApp.getProjectTriggers().map((t) => [t.getUniqueId(), t])
-  );
-
-  console.log(`${syncResponse.events.length} events changed sync last sync`);
-
-  for (const event of syncResponse.events) {
-    const triggerId = BatchItem.getTriggerId(event.id);
-
-    // cleanup
-    if (triggerId) {
-      const trigger = projectTriggersById.get(triggerId);
-      if (trigger) ScriptApp.deleteTrigger(trigger);
-    }
-    BatchItem.delete(event.id, triggerId);
-
-    // requeue with new data
-    createTriggerAndStoreEvent(event);
-  }
 }
 
 export function onRefresh() {
@@ -125,7 +81,11 @@ export function onRefresh() {
 }
 
 export function onSync() {
-  syncCurrentBatch();
+  // We could save the sync token when we get events so that only the changed events have
+  // to be updated, but it's complicated because we combine adjacent events together - if
+  // only one of those gets updated, we don't have a way to break them apart and combine
+  // back together.
+  loadNextBatch();
 }
 
 export function onEventStart(e: GoogleAppsScript.Events.AppsScriptEvent) {
