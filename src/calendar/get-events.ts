@@ -14,8 +14,6 @@ function getCalId(): string {
 
 interface EventsBatch {
   events: Event[];
-  /** A token that can be fetched to obtain only the changed events since the last query. */
-  syncToken: string | null;
   calendarId: string;
 }
 
@@ -85,8 +83,7 @@ function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
   console.log(JSON.stringify(pages));
 
   const events = processResponseItems(pages.flatMap((page) => page.items ?? []));
-  const syncToken = pages[pages.length - 1].nextSyncToken ?? null;
-  return { events, syncToken, calendarId };
+  return { events, calendarId };
 }
 
 /**
@@ -104,28 +101,4 @@ export function getAllEvents(): EventsBatch {
   };
 
   return queryAllPages(params);
-}
-
-/**
- * Get events changed since the last batch or sync.
- * @return Events batch or `null` if the sync failed. In the `null` case, retry by calling
- * `getAllEvents` instead.
- */
-export function getChangedEvents(syncToken: string): EventsBatch | null {
-  // Only a limited set of params are allowed with a sync token because it's copying the previous query
-  const params = {
-    singleEvents: true,
-    syncToken,
-  };
-
-  try {
-    return queryAllPages(params);
-  } catch (e) {
-    if (
-      e instanceof Error &&
-      e.message === "Sync token is no longer valid, a full sync is required."
-    )
-      return null;
-    throw e;
-  }
 }
