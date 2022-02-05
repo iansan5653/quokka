@@ -28,9 +28,8 @@ type TypedEvent = GoogleAppsScript.Calendar.Schema.Event & {
 };
 
 /**
- * We can only set one event per hour. If more events than that are returned,
- * combine them. Also, eliminate overlapping and close-together events; we assume it's not
- * worth clearing status for less than that time).
+ * Eliminate overlapping and close-together events; we assume it's not worth clearing
+ * status for less than that time).
  */
 function reduceEvents(events: Event[]) {
   const reduced: Event[] = [];
@@ -38,8 +37,7 @@ function reduceEvents(events: Event[]) {
     const lastEvent = reduced[reduced.length - 1];
     if (
       lastEvent &&
-      (isBefore(event.start, plusMinutes(lastEvent.end, EVENT_ADJACENCY_TOLERANCE_MINUTES)) ||
-        isBefore(event.start, plusHours(lastEvent.start, 1)))
+      isBefore(event.start, plusMinutes(lastEvent.end, EVENT_ADJACENCY_TOLERANCE_MINUTES))
     ) {
       lastEvent.end = event.end;
     } else {
