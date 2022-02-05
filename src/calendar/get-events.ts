@@ -77,6 +77,9 @@ function processResponseItems(responseEvents: GoogleAppsScript.Calendar.Schema.E
 function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
   const calendarId = getCalId();
 
+  // Even though we have a max batch size, we query to get ALL events in the window because
+  // we will filter out / combine most of them so we only end up with a fraction of the real
+  // number of calendar events.
   const pages = [Calendar.Events!.list(calendarId, params)];
   let pageToken = pages[0].nextPageToken;
   while (pageToken) {
@@ -107,7 +110,9 @@ function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
  * Get a full batch of all events in the next batch duration.
  */
 export function getAllEvents(): EventsBatch {
-  const start = new Date();
+  // Offset by an hour because we cannot schedule another trigger within an hour of the
+  // current trigger
+  const start = plusHours(new Date(), 1);
   const end = plusHours(start, EVENT_BATCH_DURATION_HOURS);
 
   const params = {
@@ -117,11 +122,5 @@ export function getAllEvents(): EventsBatch {
     showDeleted: false,
   };
 
-  // Even though we have a max batch size, we query to get ALL events in the window because
-  // we will filter out / combine most of them so we only end up with a fraction of the real
-  // number of calendar events.
-  const allEvents = queryAllPages(params);
-
-  if (queryAllPages(params).events.length > MAX_BATCH_SIZE) {
-  }
+  return queryAllPages(params)
 }
