@@ -66,7 +66,7 @@ function RefreshHintMessage() {
 }
 
 function RefreshButton() {
-  const refreshAction = CardService.newAction().setFunctionName("onRefresh");
+  const refreshAction = CardService.newAction().setFunctionName("onManualRefresh");
   return CardService.newTextButton()
     .setText("Force Refresh")
     .setTextButtonStyle(CardService.TextButtonStyle.FILLED)

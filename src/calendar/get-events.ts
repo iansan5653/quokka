@@ -3,7 +3,7 @@ import {
   EVENT_BATCH_DURATION_HOURS,
   MAX_BATCH_SIZE,
 } from "../properties";
-import { compareAscending, isBefore, plusHours, plusMinutes } from "../util/dates";
+import { compareAscending, isBefore, plusHours, plusMinutes, plusSeconds } from "../util/dates";
 
 export interface Event {
   start: Date;
@@ -80,12 +80,17 @@ function processResponseItems(
 
 /**
  * Get a full batch of all events in the next batch duration.
+ * @param after1Hour If this get is part of a time-based trigger handler, we cannot schedule
+ * a status update within one hour of now, so set this to `true` to prevent returning events
+ * within one hour of now.
  */
-export function getAllEvents(): EventsBatch {
-  // Offset by an hour because we cannot schedule another trigger within an hour of the
-  // current trigger, so there's no point in getting events within that time.
-  const start = plusHours(new Date(), 1);
-  const end = plusHours(start, EVENT_BATCH_DURATION_HOURS);
+export function getAllEvents(after1Hour: boolean = true): EventsBatch {
+  // If not adding an hour, add 30 seconds to avoid scheduling trigger too fast for currently-running events
+  const start = after1Hour ? plusHours(new Date(), 1) : plusSeconds(new Date(), 30);
+  // We always add an hour to the end date. This means that if after1Hour is false, our total
+  // batch duration will actually be one hour larger than specified. But this allows us to
+  // have some overlap so that we have loaded extra events for the next time-based trigger call.
+  const end = plusHours(new Date(), EVENT_BATCH_DURATION_HOURS + 1);
 
   const params = {
     timeMin: start.toISOString(),

@@ -1,5 +1,5 @@
 export function secondsToMillis(seconds: number) {
-  return seconds * 1000
+  return seconds * 1000;
 }
 
 export function minutesToMillis(minutes: number) {
@@ -10,9 +10,12 @@ export function hoursToMillis(hours: number) {
   return minutesToMillis(hours * 60);
 }
 
+export function plusSeconds(date: Date, seconds: number) {
+  return new Date(date.getTime() + secondsToMillis(seconds));
+}
+
 export function plusMinutes(date: Date, minutes: number) {
-  const millis = minutes * 60 * 1000;
-  return new Date(date.getTime() + millis);
+  return plusSeconds(date, minutes * 60);
 }
 
 export function plusHours(date: Date, hours: number) {
@@ -35,10 +38,10 @@ export function isBefore(a: Date, b: Date) {
 
 /** Compare to sort such that the earlier date is first. */
 export function compareAscending(a: Date, b: Date): 1 | 0 | -1 {
-  return isBefore(a, b) ? -1 : isAfter(a, b) ? 1 : 0
+  return isBefore(a, b) ? -1 : isAfter(a, b) ? 1 : 0;
 }
 
 /** Compare to sort such that the later date is first. */
 export function compareDescending(a: Date, b: Date): 1 | 0 | -1 {
-  return compareAscending(a, b) * -1 as 1 | 0 | -1
+  return (compareAscending(a, b) * -1) as 1 | 0 | -1;
 }

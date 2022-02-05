@@ -1,4 +1,4 @@
-import { onEventStart, onRefresh, onSync } from "./quokka/load-batch";
+import { onEventStart, onManualRefresh, onRefresh, onSync } from "./quokka/load-batch";
 import {
   onHomepage,
   onGitHubAccessTokenSave,
@@ -11,3 +11,4 @@ global.onStartSetGitHubToken = onStartSetGitHubToken;
 global.onEventStart = onEventStart;
 global.onRefresh = onRefresh;
 global.onSync = onSync;
+global.onManualRefresh = onManualRefresh

@@ -8,6 +8,8 @@ import {BatchItem} from "./settings";
 function clearLoadedTriggers() {
   console.log(`Clearing previously created onEventStart or onRefresh triggers`);
 
+  // TODO: can we only clear triggers farther than one hour from now?
+
   let count = 0;
   for (const trigger of ScriptApp.getProjectTriggers()) {
     const handler = trigger.getHandlerFunction();
@@ -39,7 +41,7 @@ function createTriggerAndStoreEvent(event: Event) {
 /**
  * Delete all the currently batched triggers and enqueue the next batch of triggers.
  */
-export function loadNextBatch() {
+export function loadNextBatch(timeBasedTrigger: boolean = true) {
   // Lock to prevent loading two batches at once. This can happen if the user makes many
   // calendar changes at a time.
   // Note - this could result in an edge case where the last change event times out and
@@ -50,7 +52,7 @@ export function loadNextBatch() {
   lock.waitLock(secondsToMillis(10));
 
   try {
-    const {events, calendarId, rebatchAt} = getAllEvents();
+    const {events, calendarId, rebatchAt} = getAllEvents(timeBasedTrigger);
     console.log(`Creating triggers for batch of ${events.length} events`);
 
     clearLoadedTriggers();
@@ -78,6 +80,12 @@ export function loadNextBatch() {
 
 export function onRefresh() {
   loadNextBatch();
+}
+
+export function onManualRefresh() {
+  // Manual refresh can be used to get the app to 'see' events within the next hour, since
+  // it's not time based Google will allow it (sync events are considered time based).
+  loadNextBatch(false)
 }
 
 export function onSync() {
