@@ -1,4 +1,8 @@
-import { EVENT_ADJACENCY_TOLERANCE_MINUTES, EVENT_BATCH_DURATION_HOURS } from "../properties";
+import {
+  EVENT_ADJACENCY_TOLERANCE_MINUTES,
+  EVENT_BATCH_DURATION_HOURS,
+  MAX_BATCH_SIZE,
+} from "../properties";
 import { compareAscending, isBefore, plusHours, plusMinutes } from "../util/dates";
 
 export interface Event {
@@ -15,6 +19,7 @@ function getCalId(): string {
 interface EventsBatch {
   events: Event[];
   calendarId: string;
+  rebatchAt: Date;
 }
 
 type TypedEvent = GoogleAppsScript.Calendar.Schema.Event & {
@@ -83,7 +88,19 @@ function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
   console.log(JSON.stringify(pages));
 
   const events = processResponseItems(pages.flatMap((page) => page.items ?? []));
-  return { events, calendarId };
+
+  if (events.length > MAX_BATCH_SIZE) {
+    console.log(
+      `Too many events returned. Will enqueue ${MAX_BATCH_SIZE} for now and rebatch early`
+    );
+    return {
+      calendarId,
+      events: events.slice(0, MAX_BATCH_SIZE),
+      rebatchAt: events[events.length - 1].end,
+    };
+  } else {
+    return { events, calendarId, rebatchAt: plusHours(new Date(), EVENT_BATCH_DURATION_HOURS) };
+  }
 }
 
 /**
@@ -100,5 +117,11 @@ export function getAllEvents(): EventsBatch {
     showDeleted: false,
   };
 
-  return queryAllPages(params);
+  // Even though we have a max batch size, we query to get ALL events in the window because
+  // we will filter out / combine most of them so we only end up with a fraction of the real
+  // number of calendar events.
+  const allEvents = queryAllPages(params);
+
+  if (queryAllPages(params).events.length > MAX_BATCH_SIZE) {
+  }
 }

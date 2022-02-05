@@ -1,8 +1,7 @@
 import { Event, getAllEvents } from "../calendar/get-events";
 import { Status } from "../github/status";
 import { setOrClearStatus } from "../github/status-client";
-import { DEFAULT_STATUS, EVENT_BATCH_DURATION_HOURS } from "../properties";
-import { hoursToMillis } from "../util/dates";
+import { DEFAULT_STATUS } from "../properties";
 import { BatchItem } from "./settings";
 
 function clearLoadedTriggers() {
@@ -52,17 +51,14 @@ export function loadNextBatch() {
 
   clearLoadedTriggers();
 
-  const { events, calendarId } = getAllEvents();
+  const { events, calendarId, rebatchAt } = getAllEvents();
   console.log(`Creating triggers for batch of ${events.length} events`);
 
   events.forEach(createTriggerAndStoreEvent);
 
-  const nextBatchTrigger = ScriptApp.newTrigger("onRefresh")
-    .timeBased()
-    .after(hoursToMillis(EVENT_BATCH_DURATION_HOURS))
-    .create();
+  const nextBatchTrigger = ScriptApp.newTrigger("onRefresh").timeBased().at(rebatchAt).create();
   console.log(
-    `Scheduled next batch to load in ${EVENT_BATCH_DURATION_HOURS} hours (trigger ID ${nextBatchTrigger.getUniqueId()})`
+    `Scheduled next batch to load at ${rebatchAt} (trigger ID ${nextBatchTrigger.getUniqueId()})`
   );
 
   const syncTrigger = ScriptApp.newTrigger("onSync")
@@ -70,7 +66,7 @@ export function loadNextBatch() {
     .onEventUpdated()
     .create();
   console.log(
-    `Scheduled re-batch to run on event updates (trigger ID ${syncTrigger.getUniqueId()})`
+    `Scheduled re-batch to also run on all event updates (trigger ID ${syncTrigger.getUniqueId()})`
   );
 
   lock.releaseLock();
