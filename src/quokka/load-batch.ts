@@ -50,25 +50,27 @@ export function loadNextBatch() {
   lock.waitLock(secondsToMillis(10));
 
   try {
-    clearLoadedTriggers();
-
     const {events, calendarId, rebatchAt} = getAllEvents();
     console.log(`Creating triggers for batch of ${events.length} events`);
 
-    events.forEach(createTriggerAndStoreEvent);
+    clearLoadedTriggers();
+
+    // Create the main triggers before the per-event triggers in the per-event triggers fail
+
+    const syncTrigger = ScriptApp.newTrigger("onSync")
+    .forUserCalendar(calendarId)
+    .onEventUpdated()
+    .create();
+    console.log(
+      `Scheduled re-batch to also run on all event updates (trigger ID ${syncTrigger.getUniqueId()})`
+    );
 
     const nextBatchTrigger = ScriptApp.newTrigger("onRefresh").timeBased().at(rebatchAt).create();
     console.log(
       `Scheduled next batch to load at ${rebatchAt} (trigger ID ${nextBatchTrigger.getUniqueId()})`
     );
 
-    const syncTrigger = ScriptApp.newTrigger("onSync")
-      .forUserCalendar(calendarId)
-      .onEventUpdated()
-      .create();
-    console.log(
-      `Scheduled re-batch to also run on all event updates (trigger ID ${syncTrigger.getUniqueId()})`
-    );
+    events.forEach(createTriggerAndStoreEvent);
   } finally {
     lock.releaseLock();
   }
