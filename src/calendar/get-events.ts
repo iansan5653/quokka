@@ -52,7 +52,10 @@ function reduceEvents(events: Event[]) {
   return reduced;
 }
 
-function processResponseItems(responseEvents: GoogleAppsScript.Calendar.Schema.Event[]): Event[] {
+function processResponseItems(
+  responseEvents: GoogleAppsScript.Calendar.Schema.Event[],
+  minStartTime: Date
+): Event[] {
   return reduceEvents(
     responseEvents
       // Always ignore events where the user set "Show me as available" or are deleted
@@ -70,11 +73,29 @@ function processResponseItems(responseEvents: GoogleAppsScript.Calendar.Schema.E
         end: new Date(e.end!.dateTime!),
         id: e.id!,
       }))
+      // The API field timeMin is an *end-time* filter, so we adjust the start time for
+      // events that may have started before our window began
+      .map((e) => ({ ...e, start: isBefore(e.start, minStartTime) ? minStartTime : e.start }))
       .sort((a, b) => compareAscending(a.start, b.start))
   );
 }
 
-function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
+/**
+ * Get a full batch of all events in the next batch duration.
+ */
+export function getAllEvents(): EventsBatch {
+  // Offset by an hour because we cannot schedule another trigger within an hour of the
+  // current trigger, so there's no point in getting events within that time.
+  const start = plusHours(new Date(), 1);
+  const end = plusHours(start, EVENT_BATCH_DURATION_HOURS);
+
+  const params = {
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+    singleEvents: true,
+    showDeleted: false,
+  };
+
   const calendarId = getCalId();
 
   // Even though we have a max batch size, we query to get ALL events in the window because
@@ -88,7 +109,10 @@ function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
     pages.push(page);
   }
 
-  const events = processResponseItems(pages.flatMap((page) => page.items ?? []));
+  const events = processResponseItems(
+    pages.flatMap((page) => page.items ?? []),
+    start
+  );
 
   if (events.length > MAX_BATCH_SIZE) {
     console.log(
@@ -102,23 +126,4 @@ function queryAllPages(params: Record<string, boolean | string>): EventsBatch {
   } else {
     return { events, calendarId, rebatchAt: plusHours(new Date(), EVENT_BATCH_DURATION_HOURS) };
   }
-}
-
-/**
- * Get a full batch of all events in the next batch duration.
- */
-export function getAllEvents(): EventsBatch {
-  // Offset by an hour because we cannot schedule another trigger within an hour of the
-  // current trigger
-  const start = plusHours(new Date(), 1);
-  const end = plusHours(start, EVENT_BATCH_DURATION_HOURS);
-
-  const params = {
-    timeMin: start.toISOString(),
-    timeMax: end.toISOString(),
-    singleEvents: true,
-    showDeleted: false,
-  };
-
-  return queryAllPages(params)
 }
